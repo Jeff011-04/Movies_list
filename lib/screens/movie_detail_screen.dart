@@ -14,6 +14,10 @@ class MovieDetailScreen extends StatefulWidget {
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
   late Future<Map<String, dynamic>> _movieDetails;
+  bool isWatched = false;
+
+  // In-memory list to store watched movies (in production, use shared_preferences or database)
+  static List<Map<String, dynamic>> watchedMovies = [];
 
   @override
   void initState() {
@@ -41,11 +45,32 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
+  void _toggleWatchedStatus(Map<String, dynamic> movie) {
+    setState(() {
+      isWatched = !isWatched;
+      if (isWatched) {
+        watchedMovies.add(movie); // Add to watched list
+      } else {
+        watchedMovies.removeWhere((element) => element['imdbID'] == movie['imdbID']);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Movie Detail'),
+        actions: [
+          IconButton(
+            icon: Icon(isWatched ? Icons.check_circle : Icons.check_circle_outline),
+            onPressed: () {
+              _movieDetails.then((movie) {
+                _toggleWatchedStatus(movie);
+              });
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _movieDetails,
@@ -58,31 +83,26 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             return Center(child: Text('Movie details not found.'));
           } else {
             final movie = snapshot.data!;
-            return SingleChildScrollView( // Wrap the content with a scrollable widget
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Movie poster
                   Center(
                     child: movie['Poster'] != 'N/A'
                         ? Image.network(movie['Poster'])
                         : Icon(Icons.movie, size: 200),
                   ),
                   SizedBox(height: 16.0),
-                  // Movie Title
                   Text(
                     movie['Title'] ?? 'No Title',
-                    style: Theme.of(context).textTheme.headlineMedium, // Updated style
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   SizedBox(height: 8.0),
-                  // Movie Year
                   Text('Year: ${movie['Year'] ?? 'N/A'}'),
                   SizedBox(height: 8.0),
-                  // Movie Genre
                   Text('Genre: ${movie['Genre'] ?? 'N/A'}'),
                   SizedBox(height: 8.0),
-                  // Movie Plot
                   Text(
                     'Plot: ${movie['Plot'] ?? 'No plot available.'}',
                     style: TextStyle(height: 1.5),
